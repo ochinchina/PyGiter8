@@ -3,6 +3,7 @@
 import os
 import os.path
 import random
+import shutil
 import sys
 
 class TempField:
@@ -150,29 +151,31 @@ def list_files( root_dir ):
     return result
 
 def get_project_file_name( template_root_dir, project_name, file_name ):
-    print "template_root_dir:%s" % template_root_dir
-    print "project_name:%s" % project_name
-    print "file_name:%s" % file_name
     temp_root_dirs = filter( lambda x: len( x ) > 0, template_root_dir.split( os.sep ) )
     file_names = filter( lambda x: len( x ) > 0, file_name.split( os.sep ) )
 
-    print temp_root_dirs
-    print file_names
     if len( file_names ) > len( temp_root_dirs ) and file_names[0:len( temp_root_dirs)] == temp_root_dirs:
         t = [project_name]
         t.extend( file_names[len( temp_root_dirs):] )
-        print t
         return os.path.join( *t )
     else:
         return file_name
 
 
-def write_file( file_name, content ):
+def create_dir_of( file_name ):
     dir_name = os.path.dirname( file_name )
     if not os.path.exists( dir_name ):
         os.makedirs( dir_name )
+def write_file( file_name, content ):
     with open( file_name, "wt" ) as fp:
         fp.write( content )
+
+def is_text_file( fileName ):
+    TEXT_SUFFIX = [".java", ".scala", ".sbt", ".properties", ".txt", ".text"]
+    for suffix in TEXT_SUFFIX:
+        if fileName.endswith( suffix ):
+            return True
+    return False
 
 def main( g8_temp_root ):
     root_dir = os.path.join( g8_temp_root, 'src/main/g8')
@@ -182,12 +185,20 @@ def main( g8_temp_root ):
     prompt_user_change_fields(props)
     for fileName in files:
         realFileName = replace_fields( fileName, props )
-        print get_project_file_name( root_dir, project, realFileName )
+        dest_file = get_project_file_name( root_dir, project, realFileName )
+        create_dir_of( dest_file )
+        if is_text_file( fileName ): 
+            with open(fileName) as fp:
+                content = fp.read()
+                content = replace_fields( content, props )
+                write_file( dest_file, content )
+        else:
+            shutil.copyfile( fileName, dest_file )
 
-        with open(fileName) as fp:
-            content = fp.read()
-            content = replace_fields( content, props )
-            write_file( get_project_file_name( root_dir, project, realFileName ), content )
 
-
-main( sys.argv[1] )
+if __name__ == "__main__":
+    if len( sys.argv ) < 2:
+        print( "Usage: giter8.py <giter8_template_directory>")
+        sys.exit(1)
+    else:
+        main( sys.argv[1] )
