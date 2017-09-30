@@ -177,7 +177,19 @@ def is_text_file( fileName ):
             return True
     return False
 
+def clone_template( git_url ):
+    tmp = git_url.split( "/" )
+    if len( tmp ) == 2:
+        git_url = "https://github.com/%s" % git_url
+        if not git_url.endswith( ".git" ):
+            git_url = "%s.git" % git_url
+
+    os.system( "git clone %s" % git_url )
+    return git_url.split("/")[-1][0:-4]
+
 def main( g8_temp_root ):
+    if g8_temp_root.endswith( ".git" ) or g8_temp_root.endswith(".g8"):
+        g8_temp_root = clone_template( g8_temp_root )
     root_dir = os.path.join( g8_temp_root, 'src/main/g8')
     files = list_files(root_dir)
     props = load_properties( os.path.join( root_dir, 'default.properties') )
