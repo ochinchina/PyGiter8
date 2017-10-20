@@ -3,6 +3,7 @@
 import os
 import os.path
 import random
+import re
 import requests
 import shutil
 import sys
@@ -403,6 +404,15 @@ def is_text_file( fileName ):
             return True
     return False
 
+def is_verbatim_file( fileName, verbatims ):
+    verbatims = verbatims if type(verbatims) is list else [verbatims]
+    for pattern in verbatims:
+        pattern = pattern.replace('.', '\\.' )
+        pattern = pattern.replace( '*', '.*' )
+        if re.match( pattern, fileName):
+            return True
+    return False
+
 def clone_template( git_url ):
     tmp = git_url.split( "/" )
     if len( tmp ) == 2:
@@ -422,12 +432,13 @@ def main( g8_temp_root ):
     props = Properties( os.path.join( root_dir, 'default.properties') )
     project = raw_input( "Your project:" ).strip()
     props.change_prop_with_prompt()
+    verbatims = props.get_field( 'verbatim' ).strip().split()
     for fileName in files:
         
         realFileName = props.get_file_name_with_template( fileName )
         dest_file = get_project_file_name( root_dir, project, realFileName )
         create_dir_of( dest_file )
-        if is_text_file( fileName ): 
+        if not is_verbatim_file( fileName, verbatims ):
             with open(fileName) as fp:
                 content = fp.read()
                 content = props.replace_fields( content )
